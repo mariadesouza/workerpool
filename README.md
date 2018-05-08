@@ -35,8 +35,9 @@ for i := 0; i < n; i++ {
 ## Synopsis
 
 ## Reference
-https://medium.com/@matryer/stopping-goroutines-golang-1bf28799c1cb
-http://marcio.io/2015/07/handling-1-million-requests-per-minute-with-golang/
+- https://medium.com/@matryer/stopping-goroutines-golang-1bf28799c1cb
+- http://marcio.io/2015/07/handling-1-million-requests-per-minute-with-golang/
+- https://www.youtube.com/watch?v=QDDwwePbDtw&feature=youtu.be
 
 ## Contributor
 Maria De Souza
