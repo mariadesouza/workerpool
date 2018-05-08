@@ -20,9 +20,18 @@
 
 ### (\*WorkerPool) Close()
 
-
-wp.AddWorkToPool(
-
+## Example:
+```
+wp := workerpool.New(m)
+defer wp.Close()
+for i := 0; i < n; i++ {
+    wp.AddWorkToPool(
+			func() {
+        functiontoberunconcurrently()
+      }
+   )
+}
+```
 ## Synopsis
 
 ## Reference
