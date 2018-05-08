@@ -58,20 +58,6 @@ func (p *WorkerPool) AddWorkToPool(task func()) {
 	}
 }
 
-// AddWorkToPoolAndWait : Do the actual function passed as a param and receive the result into a channel
-// It will not block
-func (p *WorkerPool) AddWorkToPoolAndWait(task func()) {
-	if task == nil {
-		return
-	}
-	doneChan := make(chan struct{})
-	p.collector <- func() {
-		task()
-		close(doneChan)
-	}
-	<-doneChan
-}
-
 //Close : Gracefully end the workpool once work is all done
 func (p *WorkerPool) Close() {
 	if p.hasWorkStopped() {
