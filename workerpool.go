@@ -1,5 +1,4 @@
-/*
-Package workerpool ...
+/*Package workerpool ...
 
 Buffered channels and worker Pools
 
@@ -51,6 +50,20 @@ func New(numOfWorkers int) *WorkerPool {
 	return pool
 }
 
+//Close : Gracefully end the workpool once work is all done
+func (p *WorkerPool) Close() {
+	if p.hasWorkStopped() {
+		return
+	}
+	for p.activeWorkerCount > 0 {
+		workerTaskChan := <-p.availableWorkers
+		close(workerTaskChan)
+		p.activeWorkerCount--
+	}
+	close(p.collector)
+	<-p.quit
+}
+
 // AddWorkToPool : Add the desired concurrent function to the work pool passed as a param
 func (p *WorkerPool) AddWorkToPool(task func()) {
 	if task != nil {
@@ -58,15 +71,7 @@ func (p *WorkerPool) AddWorkToPool(task func()) {
 	}
 }
 
-//Close : Gracefully end the workpool once work is all done
-func (p *WorkerPool) Close() {
-	if p.hasWorkStopped() {
-		return
-	}
-	close(p.collector)
-	<-p.quit
-}
-
+// Stopped returns true if this worker pool has been stopped.
 func (p *WorkerPool) hasWorkStopped() bool {
 	select {
 	case <-p.quit:
@@ -79,22 +84,23 @@ func (p *WorkerPool) hasWorkStopped() bool {
 // 1.
 // dispatcher sends the next task to an idle worker.
 func (p *WorkerPool) dispatcher() {
-	defer close(p.quit)
+
 	var task func()
 	var ok bool
 	var workerTaskChan chan func()
 
 DoLoop:
 	for {
+		p := p
 		select {
 		case task, ok = <-p.collector:
-			if ok { // we've got work to do
+			if ok { // we got work to do
 				select {
 				case workerTaskChan = <-p.availableWorkers:
-					// A worker is ready, so give the task to worker.
+					// A worker is ready, so give task to worker.
 					workerTaskChan <- task
 				default:
-					// No workers available, create a new worker and give task.
+					// NO ready workers, create a new worker from pool.
 					p.createWorker(task)
 				}
 			} else {
@@ -108,16 +114,17 @@ DoLoop:
 		close(workerTaskChan)
 		p.activeWorkerCount--
 	}
+	close(p.quit)
 }
 
-//.2 create a new worker and give task.
+//.2
 func (p *WorkerPool) createWorker(task func()) {
 	availablePool := make(chan chan func())
 
 	if p.activeWorkerCount < p.numOfWorkers {
 		p.activeWorkerCount++
 		go func(t func()) {
-			kickStartWork(availablePool, p.availableWorkers)
+			startWork(availablePool, p.availableWorkers)
 			taskChan := <-availablePool
 			taskChan <- t
 		}(task)
@@ -130,12 +137,12 @@ func (p *WorkerPool) createWorker(task func()) {
 }
 
 // 3.
-func kickStartWork(availablePool, readyWorkers chan chan func()) {
+func startWork(availablePool, readyWorkers chan chan func()) {
 	go func() {
 		taskChan := make(chan func())
 		var task func()
 		var ok bool
-		// Register availability on availablePool.
+		// Register availability on availablePool .
 		availablePool <- taskChan
 		for {
 			// Read task from dispatcher.
